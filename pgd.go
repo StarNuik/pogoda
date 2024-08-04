@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/starnuik/naive-pgd/pkg/pgp"
 )
 
 // type pgdDriver struct{}
@@ -91,6 +93,21 @@ func (m *AuthPasswordMessage) Bytes() []byte {
 	return b
 }
 
+type QueryMessage struct {
+	query string
+}
+
+func (m *QueryMessage) Bytes() []byte {
+	b := buf{}
+	b.addString(m.query)
+
+	len := len(b) + 4
+	b.prependInt32(len)
+
+	b.prependByte('Q')
+	return b
+}
+
 func requireNil(err error) {
 	if err != nil {
 		panic(err)
@@ -108,11 +125,6 @@ func main() {
 	pgUrl := os.Getenv("PG_URL")
 	pgPass := os.Getenv("PG_PASSWORD")
 
-	stup := StartupMessage{
-		user: pgUser,
-	}
-	fmt.Printf("%#v\n%s\n", stup, hex.Dump(stup.Bytes()))
-
 	// setup tcp
 	conn, err := net.Dial("tcp", pgUrl)
 	requireNil(err)
@@ -120,33 +132,109 @@ func main() {
 	reader := bufio.NewReader(conn)
 
 	// send startup
+	stup := StartupMessage{
+		user: pgUser,
+	}
+	fmt.Println("--> REQUEST")
+	fmt.Printf("%#v\n%s\n", stup, hex.Dump(stup.Bytes()))
+
 	_, err = conn.Write(stup.Bytes())
 	requireNil(err)
 
-	read(reader)
+	// AuthenticationCleartextPassword
+	printResponse(reader)
 
+	// send auth
 	pass := AuthPasswordMessage{
 		password: pgPass,
 	}
+	fmt.Println("--> REQUEST")
 	fmt.Printf("%#v\n%s\n", pass, hex.Dump(pass.Bytes()))
 
 	_, err = conn.Write(pass.Bytes())
 	requireNil(err)
 
-	read(reader)
+	// AuthenticationOk
+	printResponse(reader)
+	// ParameterStatus-es
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+	printResponse(reader)
+
+	// BackendKeyData
+	printResponse(reader)
+
+	// ReadyForQuery
+	printResponse(reader)
+
+	exec(conn, reader, "select * from users limit 1;")
+	exec(conn, reader, "select usr_name, usr_id from users;")
+	// exec(conn, reader, "insert into users (usr_name) values ('big dog');")
+	// exec(conn, reader, "select usr_name, usr_id from users;")
+	// exec(conn, reader, "delete from users where usr_name = 'big dog';")
+	// exec(conn, reader, "select usr_name, usr_id from users;")
 }
 
-func read(reader io.Reader) {
-	// response header
-	resHead := make([]byte, 5)
-	_, err := io.ReadFull(reader, resHead)
-	requireNil(err)
-	fmt.Printf("response header\n%s\n", hex.Dump(resHead))
+func exec(conn net.Conn, reader io.Reader, query string) {
+	req := QueryMessage{
+		query: query,
+	}
 
-	// response body
-	resLen := binary.BigEndian.Uint32(resHead[1:]) - 4
-	resBody := make([]byte, resLen)
-	_, err = io.ReadFull(reader, resBody)
+	_, err := conn.Write(req.Bytes())
 	requireNil(err)
-	fmt.Printf("response body\n%s\n", hex.Dump(resBody))
+
+	fmt.Printf("--> %#v\n", req)
+
+	complete := false
+	for !complete {
+		res, err := pgp.Read(reader)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		print(res)
+		_, complete = res.(*pgp.ReadyForQuery)
+	}
+	// fmt.Printf("%#v\n%s\n", query, hex.Dump(query.Bytes()))
+}
+
+// AuthenticationCleartextPassword
+// AuthenticationOk
+// ParameterStatus
+// BackendKeyData
+// ReadyForQuery
+// RowDescription
+// DataRow
+// CommandComplete
+
+func printResponse(reader io.Reader) {
+	msg, err := pgp.Read(reader)
+	if err != nil {
+		fmt.Printf("<--- %s\n", err.Error())
+		return
+	}
+	print(msg)
+}
+
+func print(msg pgp.Message) {
+	switch msg.(type) {
+	// case *pgp.RowDescription:
+	case *pgp.ErrorResponse:
+		str, err := json.MarshalIndent(msg, "", "  ")
+		requireNil(err)
+		fmt.Printf("<---\n%s\n", str)
+	default:
+		fmt.Printf("<--- %#v\n", msg)
+	}
 }
