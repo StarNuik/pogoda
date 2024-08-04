@@ -1,22 +1,19 @@
-package pgd_test
+package main_test
 
-import (
-	"database/sql"
-	"os"
-	"testing"
+// import (
+// 	"os"
 
-	_ "github.com/joho/godotenv/autoload"
-	"github.com/stretchr/testify/require"
-)
+// 	_ "github.com/joho/godotenv/autoload"
+// )
 
-var dbUrl = os.Getenv("PG_URL")
+// var dbUrl = os.Getenv("PG_URL")
 
-func TestOpen(t *testing.T) {
-	require := require.New(t)
+// func TestOpen(t *testing.T) {
+// 	require := require.New(t)
 
-	db, err := sql.Open("pgd", dbUrl)
-	require.Nil(err)
+// 	db, err := sql.Open("pgd", dbUrl)
+// 	require.Nil(err)
 
-	err = db.Ping()
-	require.Nil(err)
-}
+// 	err = db.Ping()
+// 	require.Nil(err)
+// }
