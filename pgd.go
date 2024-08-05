@@ -11,7 +11,8 @@ import (
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/starnuik/naive-pgd/pkg/pgp"
+	"github.com/starnuik/naive-pgd/pkg/pgwire"
+	"github.com/starnuik/naive-pgd/pkg/pgwire/message"
 )
 
 // type pgdDriver struct{}
@@ -198,13 +199,13 @@ func exec(conn net.Conn, reader io.Reader, query string) {
 
 	complete := false
 	for !complete {
-		res, err := pgp.Read(reader)
+		res, err := pgwire.Read(reader)
 		if err != nil {
 			fmt.Println(err)
 			break
 		}
 		print(res)
-		_, complete = res.(*pgp.ReadyForQuery)
+		_, complete = res.(*message.ReadyForQuery)
 	}
 	// fmt.Printf("%#v\n%s\n", query, hex.Dump(query.Bytes()))
 }
@@ -219,7 +220,7 @@ func exec(conn net.Conn, reader io.Reader, query string) {
 // CommandComplete
 
 func printResponse(reader io.Reader) {
-	msg, err := pgp.Read(reader)
+	msg, err := pgwire.Read(reader)
 	if err != nil {
 		fmt.Printf("<--- %s\n", err.Error())
 		return
@@ -227,10 +228,10 @@ func printResponse(reader io.Reader) {
 	print(msg)
 }
 
-func print(msg pgp.ResponseMessage) {
+func print(msg message.Response) {
 	switch msg.(type) {
 	// case *pgp.RowDescription:
-	case *pgp.ErrorResponse:
+	case *message.ErrorResponse:
 		str, err := json.MarshalIndent(msg, "", "  ")
 		requireNil(err)
 		fmt.Printf("<---\n%s\n", str)

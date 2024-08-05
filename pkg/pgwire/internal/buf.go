@@ -1,4 +1,4 @@
-package pgp
+package internal
 
 import (
 	"bytes"
@@ -9,15 +9,15 @@ import (
 // todo: panics -> errors
 // todo: comb lib/pq for why they don't do errors on readBuf's .int()/.string()
 
-type readBuf []byte
+type ReadBuf []byte
 
-func (b *readBuf) byte() byte {
+func (b *ReadBuf) Byte() byte {
 	out := (*b)[0]
 	*b = (*b)[1:]
 	return out
 }
 
-func (b *readBuf) string() string {
+func (b *ReadBuf) String() string {
 	end := bytes.IndexByte(*b, '\000')
 	if end < 0 {
 		panic("string terminator not found")
@@ -27,7 +27,7 @@ func (b *readBuf) string() string {
 	return string(out)
 }
 
-func (b *readBuf) int32() int32 {
+func (b *ReadBuf) Int32() int32 {
 	// if len(*b) < 4 {
 	// 	return -1, fmt.Errorf("invalid message: couldn't scan int32")
 	// }
@@ -38,21 +38,22 @@ func (b *readBuf) int32() int32 {
 
 // N.B: this is actually an unsigned 16-bit integer, unlike int32
 // todo: ^ why ??
-func (b *readBuf) int16() int16 {
+func (b *ReadBuf) Int16() int16 {
 	out := int16(binary.BigEndian.Uint16(*b))
 	*b = (*b)[2:]
 	return out
 }
 
-func (b *readBuf) bytes(count int32) []byte {
+func (b *ReadBuf) Bytes(count int32) []byte {
+	// will go panic by itself?
 	if count <= 0 {
-		return nil
+		panic("readbuf: count <= 0")
 	}
 	out := (*b)[:count]
 	*b = (*b)[count:]
 	return out
 }
 
-func (b *readBuf) peekInt32() int32 {
+func (b *ReadBuf) PeekInt32() int32 {
 	return int32(binary.BigEndian.Uint32(*b))
 }

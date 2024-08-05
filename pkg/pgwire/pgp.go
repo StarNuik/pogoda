@@ -1,9 +1,12 @@
-package pgp
+package pgwire
 
 import (
 	"encoding/binary"
 	"fmt"
 	"io"
+
+	"github.com/starnuik/naive-pgd/pkg/pgwire/internal"
+	"github.com/starnuik/naive-pgd/pkg/pgwire/message"
 )
 
 type messageHeader struct {
@@ -13,22 +16,10 @@ type messageHeader struct {
 
 type fullMessage struct {
 	messageHeader
-	body readBuf
+	body internal.ReadBuf
 }
 
-// WILL panic on len(head) < 5
-func toHeader(bytes []byte) messageHeader {
-	h := messageHeader{}
-	h.id = bytes[0]
-	h.length = int32(binary.BigEndian.Uint32(bytes[1:])) - 4
-	return h
-}
-
-type ResponseMessage interface {
-	populate(body readBuf) error
-}
-
-func Read(reader io.Reader) (ResponseMessage, error) {
+func Read(reader io.Reader) (message.Response, error) {
 	raw, err := read(reader)
 	if err != nil {
 		return nil, err
@@ -43,7 +34,7 @@ func Read(reader io.Reader) (ResponseMessage, error) {
 		return nil, fmt.Errorf("invalid message length")
 	}
 
-	err = msg.populate(raw.body)
+	err = msg.Populate(raw.body)
 	if err != nil {
 		return nil, err
 	}
@@ -72,30 +63,33 @@ func read(reader io.Reader) (*fullMessage, error) {
 	}, nil
 }
 
-func errorMsgNotSupported(in *fullMessage) error {
-	return fmt.Errorf("[%x / '%c'] id is not supported", in.id, in.id)
+// WILL panic on len(head) < 5
+func toHeader(bytes []byte) messageHeader {
+	h := messageHeader{}
+	h.id = bytes[0]
+	h.length = int32(binary.BigEndian.Uint32(bytes[1:])) - 4
+	return h
 }
 
-// todo: this is only valid for receiving messages
-func deduceResponseType(in *fullMessage) (ResponseMessage, error) {
-	var out ResponseMessage
+func deduceResponseType(in *fullMessage) (message.Response, error) {
+	var out message.Response
 	switch in.id {
 	case 'R':
 		return deduceAuth(in)
 	case 'S':
-		out = &ParameterStatus{}
+		out = &message.ParameterStatus{}
 	case 'Z':
-		out = &ReadyForQuery{}
+		out = &message.ReadyForQuery{}
 	case 'K':
-		out = &BackendKeyData{}
+		out = &message.BackendKeyData{}
 	case 'T':
-		out = &RowDescription{}
+		out = &message.RowDescription{}
 	case 'D':
-		out = &DataRow{}
+		out = &message.DataRow{}
 	case 'C':
-		out = &CommandComplete{}
+		out = &message.CommandComplete{}
 	case 'E':
-		out = &ErrorResponse{}
+		out = &message.ErrorResponse{}
 	default:
 		out = nil
 	}
@@ -121,30 +115,30 @@ func deduceResponseType(in *fullMessage) (ResponseMessage, error) {
 // AuthenticationSASLContinue:      Int32,     Int32(11), Byten
 // AuthenticationSASLFinal:         Int32,     Int32(12), Byten
 
-func deduceAuth(in *fullMessage) (ResponseMessage, error) {
-	var out ResponseMessage
+func deduceAuth(in *fullMessage) (message.Response, error) {
+	var out message.Response
 
-	spec := in.body.peekInt32()
+	spec := in.body.PeekInt32()
 	switch in.length {
 	case 4:
 		switch spec {
 		case 0:
-			out = &AuthOk{}
+			out = &message.AuthOk{}
 		case 2:
-			out = &AuthKerberosV5{}
+			out = &message.AuthKerberosV5{}
 		case 3:
-			out = &AuthCleartextPassword{}
+			out = &message.AuthCleartextPassword{}
 		case 7:
-			out = &AuthGSS{}
+			out = &message.AuthGSS{}
 		case 9:
-			out = &AuthSSPI{}
+			out = &message.AuthSSPI{}
 		}
 	case 8:
-		out = &AuthMD5Password{}
+		out = &message.AuthMD5Password{}
 	default:
 		switch spec {
 		case 10:
-			out = &AuthSASL{}
+			out = &message.AuthSASL{}
 		}
 	}
 
@@ -153,4 +147,8 @@ func deduceAuth(in *fullMessage) (ResponseMessage, error) {
 		err = errorMsgNotSupported(in)
 	}
 	return out, err
+}
+
+func errorMsgNotSupported(in *fullMessage) error {
+	return fmt.Errorf("[%x / '%c'] id is not supported", in.id, in.id)
 }
