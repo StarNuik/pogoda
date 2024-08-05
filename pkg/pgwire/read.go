@@ -19,26 +19,26 @@ type fullMessage struct {
 	body internal.ReadBuf
 }
 
-func Read(reader io.Reader) (message.Response, error) {
-	raw, err := read(reader)
+func (c *Conn) Read() (message.Response, error) {
+	msg, err := read(c.r)
 	if err != nil {
 		return nil, err
 	}
 
-	msg, err := deduceResponseType(raw)
+	out, err := deduceResponseType(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(raw.body) != int(raw.length) {
+	if len(msg.body) != int(msg.length) {
 		return nil, fmt.Errorf("invalid message length")
 	}
 
-	err = msg.Populate(raw.body)
+	err = out.Populate(msg.body)
 	if err != nil {
 		return nil, err
 	}
-	return msg, nil
+	return out, nil
 }
 
 func read(reader io.Reader) (*fullMessage, error) {

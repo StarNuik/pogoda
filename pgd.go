@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net"
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -36,79 +32,6 @@ import (
 // 	panic("not implemented")
 // }
 
-type buf []byte
-
-func (b *buf) prependInt32(in int) {
-	add := make([]byte, 4)
-	binary.BigEndian.PutUint32(add, uint32(in))
-	*b = append(add, *b...)
-}
-
-func (b *buf) addInt32(in int) {
-	*b = binary.BigEndian.AppendUint32(*b, uint32(in))
-}
-
-func (b *buf) addString(in string) {
-	nullTerm := append([]byte(in), '\000')
-	*b = append(*b, nullTerm...)
-}
-
-func (b *buf) prependByte(in byte) {
-	slice := make([]byte, 1)
-	slice[0] = in
-	*b = append(slice, *b...)
-}
-
-type StartupMessage struct {
-	user string
-	// database string
-}
-
-func (m *StartupMessage) Bytes() []byte {
-	b := buf{}
-	b.addInt32(196608)
-	b.addString("user")
-	b.addString(m.user)
-	// b.addString("database")
-	// b.addString(m.database)
-	b.addString("")
-
-	len := len(b) + 4
-	b.prependInt32(len)
-
-	return b
-}
-
-type AuthPasswordMessage struct {
-	password string
-}
-
-func (m *AuthPasswordMessage) Bytes() []byte {
-	b := buf{}
-	b.addString(m.password)
-
-	len := len(b) + 4
-	b.prependInt32(len)
-
-	b.prependByte('p')
-	return b
-}
-
-type QueryMessage struct {
-	query string
-}
-
-func (m *QueryMessage) Bytes() []byte {
-	b := buf{}
-	b.addString(m.query)
-
-	len := len(b) + 4
-	b.prependInt32(len)
-
-	b.prependByte('Q')
-	return b
-}
-
 func requireNil(err error) {
 	if err != nil {
 		panic(err)
@@ -127,79 +50,76 @@ func main() {
 	pgPass := os.Getenv("PG_PASSWORD")
 
 	// setup tcp
-	conn, err := net.Dial("tcp", pgUrl)
+	conn, err := pgwire.NewConn(pgUrl)
 	requireNil(err)
 	defer conn.Close()
-	reader := bufio.NewReader(conn)
 
 	// send startup
-	stup := StartupMessage{
-		user: pgUser,
+	stup := &message.Startup{
+		User: pgUser,
 	}
 	fmt.Println("--> REQUEST")
 	fmt.Printf("%#v\n%s\n", stup, hex.Dump(stup.Bytes()))
 
-	_, err = conn.Write(stup.Bytes())
+	err = conn.Write(stup)
 	requireNil(err)
 
 	// AuthenticationCleartextPassword
-	printResponse(reader)
+	printResponse(conn)
 
 	// send auth
-	pass := AuthPasswordMessage{
-		password: pgPass,
+	pass := &message.Password{
+		Password: pgPass,
 	}
-	fmt.Println("--> REQUEST")
-	fmt.Printf("%#v\n%s\n", pass, hex.Dump(pass.Bytes()))
 
-	_, err = conn.Write(pass.Bytes())
+	err = conn.Write(pass)
 	requireNil(err)
 
 	// AuthenticationOk
-	printResponse(reader)
+	printResponse(conn)
 	// ParameterStatus-es
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
-	printResponse(reader)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
+	printResponse(conn)
 
 	// BackendKeyData
-	printResponse(reader)
+	printResponse(conn)
 
 	// ReadyForQuery
-	printResponse(reader)
+	printResponse(conn)
 
-	exec(conn, reader, "select * from users limit 1;")
-	exec(conn, reader, "select usr_name, usr_id from users;")
+	exec(conn, "select * from users limit 1;")
+	exec(conn, "select usr_name, usr_id from users;")
 	// exec(conn, reader, "insert into users (usr_name) values ('big dog');")
 	// exec(conn, reader, "select usr_name, usr_id from users;")
 	// exec(conn, reader, "delete from users where usr_name = 'big dog';")
 	// exec(conn, reader, "select usr_name, usr_id from users;")
 }
 
-func exec(conn net.Conn, reader io.Reader, query string) {
-	req := QueryMessage{
-		query: query,
+func exec(conn *pgwire.Conn, query string) {
+	req := &message.Query{
+		Query: query,
 	}
 
-	_, err := conn.Write(req.Bytes())
+	err := conn.Write(req)
 	requireNil(err)
 
 	fmt.Printf("--> %#v\n", req)
 
 	complete := false
 	for !complete {
-		res, err := pgwire.Read(reader)
+		res, err := conn.Read()
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -219,8 +139,8 @@ func exec(conn net.Conn, reader io.Reader, query string) {
 // DataRow
 // CommandComplete
 
-func printResponse(reader io.Reader) {
-	msg, err := pgwire.Read(reader)
+func printResponse(conn *pgwire.Conn) {
+	msg, err := conn.Read()
 	if err != nil {
 		fmt.Printf("<--- %s\n", err.Error())
 		return
