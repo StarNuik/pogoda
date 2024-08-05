@@ -19,6 +19,8 @@ type fullMessage struct {
 	body internal.ReadBuf
 }
 
+// Read retrieves the first pending message from the tcp connection.
+// An error is returned on a db initiated ErrorResponse
 func (c *Conn) Read() (message.Response, error) {
 	msg, err := read(c.r)
 	if err != nil {
@@ -38,6 +40,11 @@ func (c *Conn) Read() (message.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err, is := out.(*message.ErrorResponse); is {
+		return nil, err
+	}
+
 	return out, nil
 }
 

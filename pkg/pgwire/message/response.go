@@ -95,28 +95,6 @@ func (m *CommandComplete) Populate(body internal.ReadBuf) error {
 	return nil
 }
 
-type ErrorResponse struct {
-	Fields []ErrorField
-}
-
-type ErrorField struct {
-	Code        byte
-	Description string
-}
-
-func (m *ErrorResponse) Populate(body internal.ReadBuf) error {
-	for /* end := bytes.IndexByte(body, '\000'); end > 0; */ {
-		field := ErrorField{}
-		field.Code = body.Byte()
-		if field.Code == '\000' {
-			break
-		}
-		field.Description = body.String()
-		m.Fields = append(m.Fields, field)
-	}
-	return nil
-}
-
 type AuthOk struct{}
 type AuthKerberosV5 struct{}
 type AuthCleartextPassword struct{}
@@ -133,32 +111,43 @@ type AuthMD5Password struct {
 	Salt []byte
 }
 
-// type AuthGSSContinue struct {
-// 	Data []byte
-// }
+type AuthGSSContinue struct {
+	Data []byte
+}
 
 type AuthSASL struct {
 	Name string
 }
 
-// type AuthSASLContinue struct {
-// 	Data []byte
-// }
+type AuthSASLContinue struct {
+	Data []byte
+}
 
-// type AuthSASLFinal struct {
-// 	Outcome []byte
-// }
+type AuthSASLFinal struct {
+	Outcome []byte
+}
 
 func (m *AuthMD5Password) Populate(body internal.ReadBuf) error {
 	m.Salt = body.Bytes(4)
 	return nil
 }
 
-// func (m *AuthGSSContinue) Populate(body internal.ReadBuf) error { return nil }
+func (m *AuthGSSContinue) Populate(body internal.ReadBuf) error {
+	m.Data = body.BytesRemainder()
+	return nil
+}
+
 func (m *AuthSASL) Populate(body internal.ReadBuf) error {
 	m.Name = body.String()
 	return nil
 }
 
-// func (m *AuthSASLContinue) Populate(body internal.ReadBuf) error { return nil }
-// func (m *AuthSASLFinal) Populate(body internal.ReadBuf) error    { return nil }
+func (m *AuthSASLContinue) Populate(body internal.ReadBuf) error {
+	m.Data = body.BytesRemainder()
+	return nil
+}
+
+func (m *AuthSASLFinal) Populate(body internal.ReadBuf) error {
+	m.Outcome = body.BytesRemainder()
+	return nil
+}

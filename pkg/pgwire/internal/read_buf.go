@@ -45,12 +45,18 @@ func (b *ReadBuf) Int16() int16 {
 }
 
 func (b *ReadBuf) Bytes(count int32) []byte {
-	// will go panic by itself?
+	// todo: will golang panic by itself?
 	if count <= 0 {
 		panic("readbuf: count <= 0")
 	}
 	out := (*b)[:count]
 	*b = (*b)[count:]
+	return out
+}
+
+func (b *ReadBuf) BytesRemainder() []byte {
+	out := *b
+	*b = ReadBuf{}
 	return out
 }
 

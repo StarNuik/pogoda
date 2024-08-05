@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -54,68 +53,80 @@ func main() {
 	requireNil(err)
 	defer conn.Close()
 
-	// send startup
-	stup := &message.Startup{
-		User: pgUser,
-	}
-	fmt.Println("--> REQUEST")
-	fmt.Printf("%#v\n%s\n", stup, hex.Dump(stup.Bytes()))
-
-	err = conn.Write(stup)
+	err = conn.Auth(pgUser, pgPass, "")
 	requireNil(err)
 
-	// AuthenticationCleartextPassword
-	printResponse(conn)
+	// // send startup
+	// stup := &message.Startup{
+	// 	User: pgUser,
+	// }
+	// fmt.Println("--> REQUEST")
+	// fmt.Printf("%#v\n%s\n", stup, hex.Dump(stup.Bytes()))
 
-	// send auth
-	pass := &message.Password{
-		Password: pgPass,
-	}
+	// err = conn.Write(stup)
+	// requireNil(err)
 
-	err = conn.Write(pass)
-	requireNil(err)
+	// // AuthenticationCleartextPassword
+	// printResponse(conn)
+
+	// // send auth
+	// pass := &message.Password{
+	// 	Password: pgPass,
+	// }
+
+	// err = conn.Write(pass)
+	// requireNil(err)
 
 	// AuthenticationOk
-	printResponse(conn)
-	// ParameterStatus-es
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
-	printResponse(conn)
+	// printResponse(conn)
+	// // ParameterStatus-es
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
+	// printResponse(conn)
 
-	// BackendKeyData
-	printResponse(conn)
+	// // BackendKeyData
+	// printResponse(conn)
 
-	// ReadyForQuery
-	printResponse(conn)
+	// // ReadyForQuery
+	// printResponse(conn)
 
 	exec(conn, "select * from users limit 1;")
 	exec(conn, "select usr_name, usr_id from users;")
+	exec(conn, "select * from users limit 1; select usr_name, usr_id from users;")
+
+	conn.Write(&message.Terminate{})
+	printResponse(conn)
 	// exec(conn, reader, "insert into users (usr_name) values ('big dog');")
 	// exec(conn, reader, "select usr_name, usr_id from users;")
 	// exec(conn, reader, "delete from users where usr_name = 'big dog';")
 	// exec(conn, reader, "select usr_name, usr_id from users;")
 }
 
+// "The simple Query message is approximately equivalent to the series
+// Parse, Bind, portal Describe, Execute, Close, Sync,
+// using the unnamed prepared statement and portal objects and no parameters."
 func exec(conn *pgwire.Conn, query string) {
 	req := &message.Query{
 		Query: query,
 	}
 
 	err := conn.Write(req)
-	requireNil(err)
+	if err != nil {
+		fmt.Printf("ERR> %v\n", err)
+	}
 
-	fmt.Printf("--> %#v\n", req)
+	fmt.Printf("---> %#v\n", req)
 
 	complete := false
 	for !complete {
@@ -142,7 +153,7 @@ func exec(conn *pgwire.Conn, query string) {
 func printResponse(conn *pgwire.Conn) {
 	msg, err := conn.Read()
 	if err != nil {
-		fmt.Printf("<--- %s\n", err.Error())
+		fmt.Printf("<ERR %s\n", err.Error())
 		return
 	}
 	print(msg)
