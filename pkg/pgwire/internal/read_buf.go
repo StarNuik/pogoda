@@ -6,7 +6,6 @@ import (
 )
 
 //? https://github.com/lib/pq/blob/3d613208bca2e74f2a20e04126ed30bcb5c4cc27/buf.go
-// todo: panics -> errors
 // todo: comb lib/pq for why they don't do errors on readBuf's .int()/.string()
 
 type ReadBuf []byte

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/starnuik/pogoda/pkg/pgwire/message"
+	"github.com/starnuik/pogoda/pkg/pgwire/message/request"
 )
 
 func (c *Conn) Auth(user string, password string, database string) error {
@@ -37,8 +38,8 @@ func (c *Conn) Auth(user string, password string, database string) error {
 	return nil
 }
 
-func startupRequest(user string, database string) message.Startup {
-	out := message.Startup{}
+func startupRequest(user string, database string) request.Startup {
+	out := request.Startup{}
 	out.User = user
 	if database != "" {
 		out.Database = database
@@ -64,7 +65,7 @@ func (c *Conn) deduceAuthFlow(in message.Response) func(string) error {
 }
 
 func (c *Conn) authCleartext(pass string) error {
-	req := message.Password{
+	req := request.Password{
 		Password: pass,
 	}
 	err := c.Write(&req)

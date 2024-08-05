@@ -8,6 +8,7 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/starnuik/pogoda/pkg/pgwire"
 	"github.com/starnuik/pogoda/pkg/pgwire/message"
+	"github.com/starnuik/pogoda/pkg/pgwire/message/request"
 )
 
 // type pgdDriver struct{}
@@ -56,56 +57,11 @@ func main() {
 	err = conn.Auth(pgUser, pgPass, "")
 	requireNil(err)
 
-	// // send startup
-	// stup := &message.Startup{
-	// 	User: pgUser,
-	// }
-	// fmt.Println("--> REQUEST")
-	// fmt.Printf("%#v\n%s\n", stup, hex.Dump(stup.Bytes()))
-
-	// err = conn.Write(stup)
-	// requireNil(err)
-
-	// // AuthenticationCleartextPassword
-	// printResponse(conn)
-
-	// // send auth
-	// pass := &message.Password{
-	// 	Password: pgPass,
-	// }
-
-	// err = conn.Write(pass)
-	// requireNil(err)
-
-	// AuthenticationOk
-	// printResponse(conn)
-	// // ParameterStatus-es
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-	// printResponse(conn)
-
-	// // BackendKeyData
-	// printResponse(conn)
-
-	// // ReadyForQuery
-	// printResponse(conn)
-
 	exec(conn, "select * from users limit 1;")
 	exec(conn, "select usr_name, usr_id from users;")
 	exec(conn, "select * from users limit 1; select usr_name, usr_id from users;")
 
-	conn.Write(&message.Terminate{})
+	conn.Write(&request.Terminate{})
 	printResponse(conn)
 	// exec(conn, reader, "insert into users (usr_name) values ('big dog');")
 	// exec(conn, reader, "select usr_name, usr_id from users;")
@@ -117,7 +73,7 @@ func main() {
 // Parse, Bind, portal Describe, Execute, Close, Sync,
 // using the unnamed prepared statement and portal objects and no parameters."
 func exec(conn *pgwire.Conn, query string) {
-	req := &message.Query{
+	req := &request.Query{
 		Query: query,
 	}
 
@@ -140,15 +96,6 @@ func exec(conn *pgwire.Conn, query string) {
 	}
 	// fmt.Printf("%#v\n%s\n", query, hex.Dump(query.Bytes()))
 }
-
-// AuthenticationCleartextPassword
-// AuthenticationOk
-// ParameterStatus
-// BackendKeyData
-// ReadyForQuery
-// RowDescription
-// DataRow
-// CommandComplete
 
 func printResponse(conn *pgwire.Conn) {
 	msg, err := conn.Read()

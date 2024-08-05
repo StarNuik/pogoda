@@ -1,5 +1,5 @@
 # PoGoDa
-A minimal Go Postgres driver that supports every database/sql "interface" feature. No other whistles included. 
+A naive implementation of a Go Postgres driver. The primary goal of the project is to conform to the database/sql "interface" with as little programmer effort as possible. It MAY be a nice showcase of postgres wire protocol, as there are practically no "improvements" added to the flow.
 
 ## Pogoda is
 * Simple

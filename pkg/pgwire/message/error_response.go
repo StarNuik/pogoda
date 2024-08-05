@@ -30,6 +30,7 @@ func (m *ErrorResponse) Populate(body internal.ReadBuf) error {
 	return nil
 }
 
+// ? https://www.postgresql.org/docs/16/protocol-error-fields.html
 func (m *ErrorResponse) Error() string {
 	severity := m.Fields['V']
 	code := m.Fields['C']

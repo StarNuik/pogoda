@@ -7,5 +7,5 @@ type Response interface {
 }
 
 type Request interface {
-	Bytes() []byte
+	Encode() []byte
 }
