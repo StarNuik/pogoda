@@ -227,7 +227,7 @@ func printResponse(reader io.Reader) {
 	print(msg)
 }
 
-func print(msg pgp.Message) {
+func print(msg pgp.ResponseMessage) {
 	switch msg.(type) {
 	// case *pgp.RowDescription:
 	case *pgp.ErrorResponse:

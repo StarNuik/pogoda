@@ -52,3 +52,7 @@ func (b *readBuf) bytes(count int32) []byte {
 	*b = (*b)[count:]
 	return out
 }
+
+func (b *readBuf) peekInt32() int32 {
+	return int32(binary.BigEndian.Uint32(*b))
+}

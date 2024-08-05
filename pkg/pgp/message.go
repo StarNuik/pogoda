@@ -114,3 +114,49 @@ func (m *ErrorResponse) populate(body readBuf) error {
 	}
 	return nil
 }
+
+type AuthOk struct{}
+type AuthKerberosV5 struct{}
+type AuthCleartextPassword struct{}
+type AuthGSS struct{}
+type AuthSSPI struct{}
+
+func (*AuthOk) populate(_ readBuf) error                { return nil }
+func (*AuthKerberosV5) populate(_ readBuf) error        { return nil }
+func (*AuthCleartextPassword) populate(_ readBuf) error { return nil }
+func (*AuthGSS) populate(_ readBuf) error               { return nil }
+func (*AuthSSPI) populate(_ readBuf) error              { return nil }
+
+type AuthMD5Password struct {
+	Salt []byte
+}
+
+// type AuthGSSContinue struct {
+// 	Data []byte
+// }
+
+type AuthSASL struct {
+	Name string
+}
+
+// type AuthSASLContinue struct {
+// 	Data []byte
+// }
+
+// type AuthSASLFinal struct {
+// 	Outcome []byte
+// }
+
+func (m *AuthMD5Password) populate(body readBuf) error {
+	m.Salt = body.bytes(4)
+	return nil
+}
+
+// func (m *AuthGSSContinue) populate(body readBuf) error { return nil }
+func (m *AuthSASL) populate(body readBuf) error {
+	m.Name = body.string()
+	return nil
+}
+
+// func (m *AuthSASLContinue) populate(body readBuf) error { return nil }
+// func (m *AuthSASLFinal) populate(body readBuf) error    { return nil }
