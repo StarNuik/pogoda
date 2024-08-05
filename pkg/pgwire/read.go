@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/starnuik/naive-pgd/pkg/pgwire/internal"
-	"github.com/starnuik/naive-pgd/pkg/pgwire/message"
+	"github.com/starnuik/pogoda/pkg/pgwire/internal"
+	"github.com/starnuik/pogoda/pkg/pgwire/message"
 )
 
 type messageHeader struct {

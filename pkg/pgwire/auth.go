@@ -3,7 +3,7 @@ package pgwire
 import (
 	"fmt"
 
-	"github.com/starnuik/naive-pgd/pkg/pgwire/message"
+	"github.com/starnuik/pogoda/pkg/pgwire/message"
 )
 
 func (c *Conn) Auth(user string, password string, database string) error {

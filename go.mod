@@ -1,4 +1,4 @@
-module github.com/starnuik/naive-pgd
+module github.com/starnuik/pogoda
 
 go 1.22.4
 

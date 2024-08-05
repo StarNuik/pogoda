@@ -6,8 +6,8 @@ import (
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/starnuik/naive-pgd/pkg/pgwire"
-	"github.com/starnuik/naive-pgd/pkg/pgwire/message"
+	"github.com/starnuik/pogoda/pkg/pgwire"
+	"github.com/starnuik/pogoda/pkg/pgwire/message"
 )
 
 // type pgdDriver struct{}

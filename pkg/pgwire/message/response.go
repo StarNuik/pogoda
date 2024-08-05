@@ -1,6 +1,6 @@
 package message
 
-import "github.com/starnuik/naive-pgd/pkg/pgwire/internal"
+import "github.com/starnuik/pogoda/pkg/pgwire/internal"
 
 // todo: panics -> errors
 

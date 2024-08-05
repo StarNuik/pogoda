@@ -3,7 +3,7 @@ package message
 import (
 	"fmt"
 
-	"github.com/starnuik/naive-pgd/pkg/pgwire/internal"
+	"github.com/starnuik/pogoda/pkg/pgwire/internal"
 )
 
 type ErrorResponse struct {

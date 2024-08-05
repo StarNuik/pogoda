@@ -1,6 +1,6 @@
 package pgwire
 
-import "github.com/starnuik/naive-pgd/pkg/pgwire/message"
+import "github.com/starnuik/pogoda/pkg/pgwire/message"
 
 func (c *Conn) Write(in message.Request) error {
 	bytes := in.Bytes()
