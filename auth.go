@@ -1,4 +1,4 @@
-package pgwire
+package pogoda
 
 import (
 	"fmt"

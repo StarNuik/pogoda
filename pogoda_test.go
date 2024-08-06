@@ -1,61 +1,38 @@
-package main
+package pogoda_test
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"testing"
 
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/starnuik/pogoda/pkg/pgwire"
+	"github.com/starnuik/pogoda"
 	"github.com/starnuik/pogoda/pkg/pgwire/message"
 	"github.com/starnuik/pogoda/pkg/pgwire/message/request"
+	"github.com/stretchr/testify/require"
 )
 
-// type pgdDriver struct{}
+var (
+	pgUser = os.Getenv("PG_USER")
+	pgUrl  = os.Getenv("PG_URL")
+	pgPass = os.Getenv("PG_PASSWORD")
+)
 
-// // ? https://github.com/jbarham/gopgsqldriver/blob/f8287ee9bfe224aa4a7edcd73815ecbe69db7f68/pgdriver.go#L350
-// func init() {
-// 	sql.Register("pgd", &pgdDriver{})
-// }
-
-// // ? https://pkg.go.dev/database/sql/driver#Driver
-// // This is the MINIMAL requirement for an sql.driver.Driver
-// // Anything else is an "IF a Driver implements"
-// func (d *pgdDriver) Open(name string) (driver.Conn, error) {
-// 	fmt.Println("pgdDriver.Open:", name)
-// 	conn, err := net.Dial("tcp", "localhost:5432")
-// 	// c = NewConnector
-// 	// c.Dialer(defaultDialer{})
-// 	// c.open(ctx.Background)
-// 	//
-
-// 	panic("not implemented")
-// }
-
-func requireNil(err error) {
-	if err != nil {
-		panic(err)
-	}
+func TestMain(m *testing.M) {
+	//
+	m.Run()
 }
 
-func main() {
-	// fmt.Println(conn, err)
-	// conn.Close()
-	// fmt.Println(conn, err)
-	// pgVersion := 196608
-	// bytes := make([]byte, 4)
-	// binary.BigEndian.PutUint32(bytes, uint32(pgVersion))
-	pgUser := os.Getenv("PG_USER")
-	pgUrl := os.Getenv("PG_URL")
-	pgPass := os.Getenv("PG_PASSWORD")
+func TestPogoda(t *testing.T) {
+	require := require.New(t)
 
-	// setup tcp
-	conn, err := pgwire.NewConn(pgUrl)
-	requireNil(err)
+	conn, err := pogoda.NewConn(pgUrl)
+	require.Nil(err)
 	defer conn.Close()
 
 	err = conn.Auth(pgUser, pgPass, "")
-	requireNil(err)
+	require.Nil(err)
 
 	exec(conn, "select * from users limit 1;")
 	exec(conn, "select usr_name, usr_id from users;")
@@ -72,7 +49,7 @@ func main() {
 // "The simple Query message is approximately equivalent to the series
 // Parse, Bind, portal Describe, Execute, Close, Sync,
 // using the unnamed prepared statement and portal objects and no parameters."
-func exec(conn *pgwire.Conn, query string) {
+func exec(conn *pogoda.Conn, query string) {
 	req := &request.Query{
 		Query: query,
 	}
@@ -97,8 +74,9 @@ func exec(conn *pgwire.Conn, query string) {
 	// fmt.Printf("%#v\n%s\n", query, hex.Dump(query.Bytes()))
 }
 
-func printResponse(conn *pgwire.Conn) {
+func printResponse(conn *pogoda.Conn) {
 	msg, err := conn.Read()
+
 	if err != nil {
 		fmt.Printf("<ERR %s\n", err.Error())
 		return
@@ -110,8 +88,7 @@ func print(msg message.Response) {
 	switch msg.(type) {
 	// case *pgp.RowDescription:
 	case *message.ErrorResponse:
-		str, err := json.MarshalIndent(msg, "", "  ")
-		requireNil(err)
+		str, _ := json.MarshalIndent(msg, "", "  ")
 		fmt.Printf("<---\n%s\n", str)
 	default:
 		fmt.Printf("<--- %#v\n", msg)

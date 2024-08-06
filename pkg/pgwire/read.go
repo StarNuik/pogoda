@@ -21,7 +21,7 @@ type fullMessage struct {
 
 // Read retrieves the first pending message from the tcp connection.
 // An error is returned on a db initiated ErrorResponse
-func (c *Conn) Read() (message.Response, error) {
+func (c *Wire) Read() (message.Response, error) {
 	msg, err := read(c.r)
 	if err != nil {
 		return nil, err
